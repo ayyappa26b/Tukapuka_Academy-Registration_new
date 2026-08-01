@@ -62,12 +62,10 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Standalone Next.js output + static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone  ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static      ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public            ./public
 
 # Custom server + Prisma (needed at runtime for migrations & socket server)
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules      ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma            ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/server.ts         ./server.ts
 COPY --from=builder --chown=nextjs:nodejs /app/lib               ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/package.json      ./package.json
 
