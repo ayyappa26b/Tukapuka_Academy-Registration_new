@@ -1,0 +1,365 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Baloo 2, Kalam, Ruda — all loaded via next/font/google in layout.tsx */
+
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Tailwind v4 theme map — CSS vars → utility classes
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@theme inline {
+  /* shadcn semantic tokens */
+  --color-background:           var(--background);
+  --color-foreground:           var(--foreground);
+  --color-card:                 var(--card);
+  --color-card-foreground:      var(--card-foreground);
+  --color-popover:              var(--popover);
+  --color-popover-foreground:   var(--popover-foreground);
+  --color-primary:              var(--primary);
+  --color-primary-foreground:   var(--primary-foreground);
+  --color-secondary:            var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:                var(--muted);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-accent:               var(--accent);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-destructive:          var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:               var(--border);
+  --color-input:                var(--input);
+  --color-ring:                 var(--ring);
+
+  /* ── TukaPuka brand tokens ── */
+  --color-pond-water:      var(--pond-water);
+  --color-tuka-navy:       var(--tuka-navy);
+  --color-tuka-blue:       var(--tuka-blue);
+  --color-tuka-cyan:       var(--tuka-cyan);
+  --color-tuka-orange:     var(--tuka-orange);
+  --color-puka-lime:       var(--puka-lime);
+  --color-puka-emerald:    var(--puka-emerald);
+  --color-puka-red:        var(--puka-red);
+  --color-surface-elevated:var(--surface-elevated);
+  --color-glass:           var(--glass);
+
+  /* Semantic aliases */
+  --color-success: var(--puka-emerald);
+  --color-warning: var(--tuka-orange);
+  --color-timer:   var(--puka-red);
+
+  /* Sidebar (deep plumage navy) */
+  --color-sidebar:                    var(--sidebar);
+  --color-sidebar-foreground:         var(--sidebar-foreground);
+  --color-sidebar-primary:            var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:             var(--sidebar-accent);
+  --color-sidebar-accent-foreground:  var(--sidebar-accent-foreground);
+  --color-sidebar-border:             var(--sidebar-border);
+
+  /* ── Typography — Kalam (headings) · Ruda (body) · Baloo 2 (scores) ── */
+  --font-sans:    var(--font-ruda,   'Ruda',   system-ui, sans-serif);
+  --font-heading: var(--font-kalam,  'Kalam',  cursive);
+  --font-mono:    var(--font-baloo,  'Baloo 2', system-ui, monospace);
+
+  /* ── Organic border-radius scale ──
+     Everything rounded — no sharp corners anywhere.
+     pill    = rounded-full (buttons, badges, inputs)
+     organic = 2rem (32px) cards and panels
+     soft    = 1rem standard radius
+  ── */
+  --radius:    1rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;        /* "organic card" radius */
+  --radius-2xl: 2.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Color System — Spotted Kingfisher palette
+   ═══════════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Base ── */
+  --background:         #E3F2FD;   /* pond water */
+  --foreground:         #0B1F3A;   /* deep ink */
+  --card:               rgba(255, 255, 255, 0.88);
+  --card-foreground:    #0B1F3A;
+  --popover:            rgba(255, 255, 255, 0.96);
+  --popover-foreground: #0B1F3A;
+  --border:             rgba(26, 115, 232, 0.15);
+  --input:              rgba(255, 255, 255, 0.7);
+  --ring:               #1A73E8;
+  --radius:             1rem;
+
+  /* ── Muted / secondary ── */
+  --secondary:              rgba(227, 242, 253, 0.6);
+  --secondary-foreground:   #0B1F3A;
+  --muted:                  rgba(227, 242, 253, 0.8);
+  --muted-foreground:       #607D8B;
+  --accent:                 rgba(0, 229, 255, 0.08);
+  --accent-foreground:      #0B3B60;
+  --surface-elevated:       rgba(255, 255, 255, 0.95);
+
+  /* ── Primary — Vibrant Wing Blue ── */
+  --primary:            #1A73E8;
+  --primary-foreground: #FFFFFF;
+
+  /* ── Destructive ── */
+  --destructive:            #FF1744;
+  --destructive-foreground: #FFFFFF;
+
+  /* ── Glass ── */
+  --glass: rgba(255, 255, 255, 0.55);
+
+  /* ── TukaPuka Brand Palette ── */
+  --pond-water:   #E3F2FD;   /* app background */
+  --tuka-navy:    #0B3B60;   /* deep plumage — sidebar, dark surfaces */
+  --tuka-blue:    #1A73E8;   /* vibrant wing blue — primary CTA */
+  --tuka-cyan:    #00E5FF;   /* electric cyan — educator highlight */
+  --tuka-orange:  #FF6D00;   /* beak orange — alerts, score pop */
+  --puka-lime:    #AEEA00;   /* frog lime — puka accent */
+  --puka-emerald: #00C853;   /* emerald — correct / success */
+  --puka-red:     #FF1744;   /* timer warning / wrong */
+
+  /* ── Sidebar (deep plumage navy) ── */
+  --sidebar:                    #0B3B60;
+  --sidebar-foreground:         rgba(255, 255, 255, 0.92);
+  --sidebar-primary:            #00E5FF;
+  --sidebar-primary-foreground: #0B3B60;
+  --sidebar-accent:             rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground:  rgba(255, 255, 255, 0.92);
+  --sidebar-border:             rgba(255, 255, 255, 0.10);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Base layer
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-ruda, 'Ruda', system-ui, sans-serif);
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Kalam for all headings */
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--font-kalam, 'Kalam', cursive);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  /* Baloo 2 for scores, timers, numeric data */
+  .font-score, .font-timer {
+    font-family: var(--font-baloo, 'Baloo 2', system-ui, sans-serif);
+  }
+
+  /* Typing input — captures keystrokes passively for IntelProfile.typingWpm */
+  .typing-capture {
+    font-family: var(--font-ruda, 'Ruda', system-ui, sans-serif);
+    letter-spacing: 0.03em;
+    caret-color: var(--tuka-cyan);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--tuka-blue);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Utility layer — TukaPuka design system
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@layer utilities {
+
+  /* ── Typography helpers ── */
+  .font-body    { font-family: var(--font-ruda,  'Ruda',   system-ui, sans-serif); }
+  .font-heading { font-family: var(--font-kalam, 'Kalam',  cursive); }
+  .font-score   { font-family: var(--font-baloo, 'Baloo 2', system-ui, sans-serif); }
+
+  /* ── Brand colour utilities ── */
+  .text-tuka-navy    { color: #0B3B60; }
+  .text-tuka-blue    { color: #1A73E8; }
+  .text-tuka-cyan    { color: #00E5FF; }
+  .text-tuka-orange  { color: #FF6D00; }
+  .text-puka-lime    { color: #AEEA00; }
+  .text-puka-emerald { color: #00C853; }
+  .text-puka-red     { color: #FF1744; }
+  .text-success      { color: #00C853; }
+  .text-warning      { color: #FF6D00; }
+  .text-timer        { color: #FF1744; }
+
+  .bg-tuka-navy      { background-color: #0B3B60; }
+  .bg-tuka-blue      { background-color: #1A73E8; }
+  .bg-tuka-cyan      { background-color: #00E5FF; }
+  .bg-tuka-orange    { background-color: #FF6D00; }
+  .bg-puka-lime      { background-color: #AEEA00; }
+  .bg-puka-emerald   { background-color: #00C853; }
+  .bg-puka-red       { background-color: #FF1744; }
+  .bg-pond-water     { background-color: #E3F2FD; }
+  .bg-surface-elevated { background-color: rgba(255,255,255,0.95); }
+  .bg-glass          { background-color: rgba(255,255,255,0.55); }
+
+  .border-tuka-navy    { border-color: #0B3B60; }
+  .border-tuka-blue    { border-color: #1A73E8; }
+  .border-tuka-cyan    { border-color: #00E5FF; }
+  .border-tuka-orange  { border-color: #FF6D00; }
+  .border-puka-lime    { border-color: #AEEA00; }
+  .border-puka-emerald { border-color: #00C853; }
+  .border-puka-red     { border-color: #FF1744; }
+
+  /* ── Organic shape system ──
+     card-organic:  soft 2rem radius + frosted glass — the main card style
+     pill-btn:      fully rounded pill button base
+     glass-panel:   backdrop blur surface
+  ── */
+  .card-organic {
+    border-radius: 2rem;
+    background:    rgba(255, 255, 255, 0.82);
+    border:        1px solid rgba(26, 115, 232, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .card-organic-solid {
+    border-radius: 2rem;
+    background:    rgba(255, 255, 255, 0.96);
+    border:        1px solid rgba(26, 115, 232, 0.10);
+    box-shadow:    0 4px 24px rgba(11, 59, 96, 0.06);
+  }
+
+  .glass-panel {
+    background:    rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border:        1px solid rgba(255, 255, 255, 0.6);
+  }
+
+  .pill-btn {
+    border-radius: 9999px;
+    font-family:   var(--font-ruda, 'Ruda', system-ui, sans-serif);
+    font-weight:   700;
+    letter-spacing: 0.01em;
+    transition:    transform 0.15s, box-shadow 0.15s, background-color 0.15s;
+  }
+  .pill-btn:active {
+    transform: scale(0.96);
+  }
+
+  /* ── Pond water gradient background (used on splash / hero sections) ── */
+  .pond-bg {
+    background: linear-gradient(160deg, #C8E6FA 0%, #E3F2FD 45%, #D4F0E0 100%);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     ANIMATIONS
+     ───────────────────────────────────────────────────────────────────────── */
+
+  /* Pond Ripple — loading spinner replacement */
+  @keyframes pond-ripple {
+    0%   { transform: scale(0.6);  opacity: 0.9; }
+    100% { transform: scale(2.8);  opacity: 0;   }
+  }
+  .pond-ripple       { animation: pond-ripple 1.6s ease-out infinite; }
+  .pond-ripple-delay { animation: pond-ripple 1.6s ease-out 0.55s infinite; }
+
+  /* Lily Bounce — card hover lift */
+  @keyframes lily-bounce {
+    0%, 100% { transform: translateY(0);   }
+    50%       { transform: translateY(-7px); }
+  }
+  .lily-hover:hover { animation: lily-bounce 0.5s ease-in-out; }
+
+  /* Timer Flap — warning wiggle */
+  @keyframes timer-flap {
+    0%, 100% { transform: rotate(0deg);   }
+    20%       { transform: rotate(-3deg);  }
+    40%       { transform: rotate(3deg);   }
+    60%       { transform: rotate(-2deg);  }
+    80%       { transform: rotate(2deg);   }
+  }
+  .timer-warning {
+    animation: timer-flap 0.35s ease-in-out infinite;
+    color: #FF1744;
+  }
+
+  /* Mud Splash — wrong answer shake */
+  @keyframes mud-splash {
+    0%        { transform: translateX(0); }
+    15%       { transform: translateX(-6px); }
+    35%       { transform: translateX(6px); }
+    55%       { transform: translateX(-4px); }
+    75%       { transform: translateX(4px); }
+    100%      { transform: translateX(0); }
+  }
+  .mud-splash { animation: mud-splash 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+
+  /* Tongue Catch — correct answer snap */
+  @keyframes tongue-catch {
+    0%   { transform: scaleX(0); transform-origin: left; }
+    65%  { transform: scaleX(1.08); }
+    100% { transform: scaleX(1); }
+  }
+  .tongue-catch { animation: tongue-catch 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  /* Firefly Rise — points earned particles */
+  @keyframes firefly-rise {
+    0%   { transform: translateY(0)     scale(1);   opacity: 1; }
+    100% { transform: translateY(-48px) scale(0);   opacity: 0; }
+  }
+  .firefly { animation: firefly-rise 0.9s ease-out forwards; }
+
+  /* Leapfrog — leaderboard overtake */
+  @keyframes leapfrog {
+    0%   { transform: translateY(0)     scale(1);    }
+    40%  { transform: translateY(-22px) scale(1.07); }
+    100% { transform: translateY(0)     scale(1);    }
+  }
+  .leapfrog { animation: leapfrog 0.65s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  /* Dive Bomb — session launch / tuka primary action */
+  @keyframes dive-bomb {
+    0%   { transform: translateY(-70px) scaleY(0.5); opacity: 0; }
+    60%  { transform: translateY(10px)  scaleY(1.1); opacity: 1; }
+    80%  { transform: translateY(-4px)  scaleY(0.96); }
+    100% { transform: translateY(0)     scaleY(1);    opacity: 1; }
+  }
+  .dive-bomb { animation: dive-bomb 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  /* Score Pop — quick scale-in for numeric displays */
+  @keyframes score-pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    65%  { transform: scale(1.18); }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+  .score-pop { animation: score-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  /* Glow Pulse — for live indicators */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0   0    rgba(0, 200, 83, 0.4); }
+    50%       { box-shadow: 0 0 16px 4px rgba(0, 200, 83, 0.6); }
+  }
+  .glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+  /* Float — gentle up-down for character illustrations */
+  @keyframes float-gentle {
+    0%, 100% { transform: translateY(0px);  }
+    50%       { transform: translateY(-8px); }
+  }
+  .float-gentle { animation: float-gentle 3.5s ease-in-out infinite; }
+}

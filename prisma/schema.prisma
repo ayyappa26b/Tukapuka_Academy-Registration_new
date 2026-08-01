@@ -1,0 +1,467 @@
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; explicit Alpine target so the prod Docker image
+  // (node:20-alpine, openssl 3) ships the correct query engine. Without this,
+  // every runtime Prisma query fails with "could not locate the Query Engine".
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ===========================================================================
+// Enums
+// ===========================================================================
+
+enum PlanTier {
+  FREE
+  PAID
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  TRIAL
+  SUSPENDED
+  CANCELLED
+}
+
+// Separate from TenantStatus (which is billing/subscription state).
+// This gates admin approval of newly self-registered academies before
+// they're visible/usable. Existing tenants created before this field
+// existed should be backfilled to APPROVED (see migration notes).
+enum TenantReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// PUKA = Learner (the Frog), TUKA = Educator (the Kingfisher)
+enum UserRole {
+  PUKA
+  GUARDIAN
+  TUKA
+}
+
+enum ClassStatus {
+  OPEN
+  FULL
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  BOOKED
+  ATTENDED
+  MISSED
+}
+
+enum SessionStatus {
+  LOBBY
+  COUNTDOWN
+  ACTIVE
+  ENDED
+}
+
+enum GameType {
+  WORDQUEST
+  KNOWQUEST
+  TALEQUEST
+  RECALLQUEST
+  MATHQUEST
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+// MVP: manual payment screenshot verification
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// A Tuka asking to move from their current academy (tenant) to a different one.
+enum AcademyChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ===========================================================================
+// Tenant  (school / studio / academy)
+// ===========================================================================
+
+model Tenant {
+  id                String       @id @default(uuid())
+  name              String
+  slug              String       @unique
+  plan              PlanTier     @default(FREE)
+  licenseKey        String       @unique
+  status            TenantStatus @default(ACTIVE)
+  maxPukas          Int          @default(10)
+  maxClasses        Int          @default(3)
+  maxSessions       Int          @default(1)
+  analyticsEnabled  Boolean      @default(false)
+  whiteLabelEnabled Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  expiresAt         DateTime?
+
+  // ── Admin review workflow (academy-admin app) ────────────────────────
+  // Kept separate from `status` (billing state) above. Public visibility
+  // / usability gates on this, not on TenantStatus.
+  // DB default is APPROVED (not PENDING) so this migration doesn't
+  // retroactively hide tenants that already exist. academy-registration-site
+  // explicitly sets reviewStatus: "PENDING" when creating a new signup.
+  reviewStatus TenantReviewStatus @default(APPROVED)
+  tuka         Json?
+  puka         Json?
+  garden       Json?
+  rejectionReason String?
+  reviewedByEmail String?
+  reviewedAt      DateTime?
+
+  // Set by academy-registration-site at signup, for support/record-keeping
+  // only — not used for auth.
+  contactName  String?
+  contactEmail String?
+
+  subscription  Subscription?
+  users         User[]
+  classes       Class[]
+  sessions      TukaSession[]
+  contents      Content[]
+  gameResults   GameResult[]
+  chatMessages  ChatMessage[]
+  intelProfiles IntelProfile[]
+  badges        Badge[]
+  payments      PaymentSubmission[]
+
+  // Academy-switching requests — outgoing (Tukas here asking to leave) and
+  // incoming (Tukas elsewhere asking to join this academy). Reviewed on
+  // /dashboard/requests.
+  academyChangeRequestsFrom AcademyChangeRequest[] @relation("AcademyChangeFromTenant")
+  academyChangeRequestsTo   AcademyChangeRequest[] @relation("AcademyChangeTargetTenant")
+
+  @@index([reviewStatus])
+}
+
+// ── Admin allow-list (academy-admin app) ──────────────────────────────
+// Only emails present here may log in to the separate academy-admin app.
+// Uses the same Clerk app as everything else, so lookup is by email.
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  isSuperAdmin Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Subscription {
+  id          String             @id @default(uuid())
+  tenantId    String             @unique
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  plan        PlanTier
+  amount      Int
+  currency    String             @default("USD")
+  interval    String             @default("month")
+  status      SubscriptionStatus @default(ACTIVE)
+  startedAt   DateTime           @default(now())
+  renewsAt    DateTime
+  cancelledAt DateTime?
+}
+
+// ===========================================================================
+// User  (Tuka | Puka | Guardian)
+// ===========================================================================
+
+model User {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  clerkId     String   @unique
+  role        UserRole @default(PUKA)
+  displayName String
+  email       String
+  ageGroup    String?
+  avatarUrl   String?
+
+  // Guardian <-> Puka
+  guardianId String?
+  guardian   User?   @relation("GuardianPuka", fields: [guardianId], references: [id])
+  pukas      User[]  @relation("GuardianPuka")
+
+  // Gamification
+  totalPoints    Int @default(0)
+  sessionsPlayed Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessionsLed      TukaSession[]       @relation("SessionLedBy")
+  classesLed       Class[]             @relation("ClassLedBy")
+  gameResults      GameResult[]
+  chatMessages     ChatMessage[]
+  bookings         Booking[]
+  userBadges       UserBadge[]
+  intelProfile     IntelProfile?
+  verifiedPayments PaymentSubmission[] @relation("VerifiedByTuka")
+
+  // Academy-switching: requests this user filed, and (as a Tuka of the
+  // target academy) requests this user reviewed.
+  academyChangeRequests AcademyChangeRequest[] @relation("AcademyChangeRequester")
+  academyChangeReviews  AcademyChangeRequest[] @relation("AcademyChangeReviewer")
+
+  @@index([tenantId])
+  @@index([clerkId])
+}
+
+// ===========================================================================
+// Class  (a scheduled cohort)
+// ===========================================================================
+
+model Class {
+  id          String      @id @default(uuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  scheduledAt DateTime
+  duration    Int
+  ageGroup    String
+  maxSlots    Int         @default(20)
+  status      ClassStatus @default(OPEN)
+  tukaId      String
+  tuka        User        @relation("ClassLedBy", fields: [tukaId], references: [id])
+  createdAt   DateTime    @default(now())
+  bookings    Booking[]
+  sessions    TukaSession[]
+
+  @@index([tenantId])
+}
+
+model Booking {
+  id        String        @id @default(uuid())
+  tenantId  String
+  classId   String
+  class     Class         @relation(fields: [classId], references: [id])
+  pukaId    String
+  puka      User          @relation(fields: [pukaId], references: [id])
+  status    BookingStatus @default(BOOKED)
+  createdAt DateTime      @default(now())
+
+  @@index([tenantId])
+}
+
+// ===========================================================================
+// TukaSession
+// MVP: exactly 3 pre-built games, 60-90 min total, stored in config JSON
+// ===========================================================================
+
+model TukaSession {
+  id        String        @id @default(uuid())
+  tenantId  String
+  title     String?
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  classId   String?
+  class     Class?        @relation(fields: [classId], references: [id])
+  tukaId    String
+  tuka      User          @relation("SessionLedBy", fields: [tukaId], references: [id])
+  status    SessionStatus @default(LOBBY)
+  gameType  GameType
+  config    Json
+  startedAt DateTime?
+  endedAt   DateTime?
+  joinCode  String        @unique @default(uuid())
+  // Visibility: public sessions are discoverable by every Puka in the tenant
+  // (no code needed); private sessions can only be joined with the joinCode.
+  isPublic  Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  gameResults  GameResult[]
+  chatMessages ChatMessage[]
+
+  @@index([tenantId])
+  @@index([tenantId, isPublic])
+}
+
+model GameResult {
+  id          String      @id @default(uuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  sessionId   String
+  session     TukaSession @relation(fields: [sessionId], references: [id])
+  pukaId      String
+  puka        User        @relation(fields: [pukaId], references: [id])
+  gameType    GameType
+  score       Int         @default(0)
+  accuracyPct Float?
+  answers     Json
+  timeTaken   Int
+  bonusPoints Int         @default(0)
+  completedAt DateTime    @default(now())
+
+  @@index([tenantId])
+  @@index([pukaId])
+}
+
+model ChatMessage {
+  id        String       @id @default(uuid())
+  tenantId  String
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  sessionId String?
+  session   TukaSession? @relation(fields: [sessionId], references: [id])
+  senderId  String
+  sender    User         @relation(fields: [senderId], references: [id])
+  content   String
+  isDeleted Boolean      @default(false)
+  isPinned  Boolean      @default(false)
+  createdAt DateTime     @default(now())
+
+  @@index([tenantId])
+}
+
+// ===========================================================================
+// Content  (PRE-BUILT ONLY for MVP - custom content disabled)
+// ===========================================================================
+
+model Content {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  name         String
+  gameType     GameType
+  ageGroup     String
+  difficulty   Int      @default(1)
+  description  String
+  instructions String
+  data         Json
+  maxPoints    Int      @default(100)
+  isActive     Boolean  @default(true)
+  isPrebuilt   Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// ===========================================================================
+// Gamification
+// ===========================================================================
+
+model Badge {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  name        String
+  description String
+  iconUrl     String
+  criteria    Json
+  createdAt   DateTime  @default(now())
+  userBadges  UserBadge[]
+
+  @@index([tenantId])
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  awardedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
+// ===========================================================================
+// IntelProfile  (PukaRank dimensions + typing speed)
+// ===========================================================================
+
+model IntelProfile {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  vocabulary  Int      @default(50)
+  knowledge   Int      @default(50)
+  creativity  Int      @default(50)
+  memory      Int      @default(50)
+  numeracy    Int      @default(50)
+  typingWpm   Int      @default(0)
+  lastUpdated DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// ===========================================================================
+// PaymentSubmission  (MVP manual verification flow)
+// Parents upload a bank transfer screenshot.
+// Tuka reviews manually in dashboard to grant session access.
+// ===========================================================================
+
+model PaymentSubmission {
+  id               String        @id @default(uuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id])
+  pukaName         String
+  guardianEmail    String
+  screenshotUrl    String
+  amount           String
+  currency         String        @default("MYR")
+  notes            String?
+  status           PaymentStatus @default(PENDING)
+  verifiedByTukaId String?
+  verifiedByTuka   User?         @relation("VerifiedByTuka", fields: [verifiedByTukaId], references: [id])
+  verifiedAt       DateTime?
+  rejectedReason   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ===========================================================================
+// AcademyChangeRequest
+// A Tuka asks to move from their current academy (tenant) to another one.
+// Same table the main TukaPuka app writes to (app/api/academy-change-requests)
+// — this project's /dashboard/requests is one of the two places it's
+// reviewed from; a Tuka can also review it in-product on /tuka/academy.
+// ===========================================================================
+
+model AcademyChangeRequest {
+  id     String @id @default(uuid())
+
+  requestingUserId String
+  requestingUser   User   @relation("AcademyChangeRequester", fields: [requestingUserId], references: [id])
+
+  fromTenantId String
+  fromTenant   Tenant @relation("AcademyChangeFromTenant", fields: [fromTenantId], references: [id])
+
+  targetTenantId String
+  targetTenant   Tenant @relation("AcademyChangeTargetTenant", fields: [targetTenantId], references: [id])
+
+  reason String?
+
+  status AcademyChangeStatus @default(PENDING)
+
+  reviewedByUserId String?
+  reviewedByUser   User?   @relation("AcademyChangeReviewer", fields: [reviewedByUserId], references: [id])
+  rejectionReason  String?
+  reviewedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([targetTenantId, status])
+  @@index([requestingUserId, status])
+}
