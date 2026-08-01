@@ -78,4 +78,4 @@ ENV PORT=4000
 ENV HOSTNAME="0.0.0.0"
 
 # Custom server boots Next.js + Socket.IO together
-CMD ["npx", "tsx", "server.ts"]
+CMD ["node", "server.js"]
