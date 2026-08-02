@@ -177,11 +177,11 @@ useEffect(() => {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/about"
-            className="hidden sm:block text-sm font-body font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
-          >
-            Our Story
-          </Link>
+  href="#how-it-works"
+  className="hidden sm:block text-sm font-body font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
+>
+  How It Works
+</Link>
           {isSignedIn ? (
             <>
               <Link
