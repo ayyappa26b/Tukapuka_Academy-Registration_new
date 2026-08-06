@@ -181,13 +181,13 @@ export function RegisterForm({ defaultName, defaultEmail }: Props) {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Academy'}
             </Button>
 
-            <button
+            {/* <button
               type="button"
               onClick={checkStatus}
               className="w-full text-xs text-muted-foreground font-body underline underline-offset-2"
             >
               Already registered? Check your status
-            </button>
+            </button> */}
           </form>
         </CardContent>
       </Card>
