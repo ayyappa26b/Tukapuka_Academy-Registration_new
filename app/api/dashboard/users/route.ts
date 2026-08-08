@@ -27,6 +27,9 @@ const role = roleParam as UserRole
     tenantId: ctx.tenant.id,
     role,
     ...(search ? { displayName: { contains: search, mode: 'insensitive' as const } } : {}),
+    ...(role === 'TUKA' && ctx.tenant.contactEmail
+      ? { email: { not: ctx.tenant.contactEmail } }
+      : {}),
   }
 
   const [users, total] = await Promise.all([

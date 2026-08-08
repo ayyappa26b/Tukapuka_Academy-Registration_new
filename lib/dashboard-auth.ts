@@ -24,6 +24,7 @@ export async function getDashboardContext() {
           licenseKey: true,
           reviewStatus: true,
           rejectionReason: true,
+          contactEmail: true,
         },
       },
     },

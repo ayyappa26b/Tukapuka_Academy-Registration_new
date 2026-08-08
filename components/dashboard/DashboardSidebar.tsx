@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { useTour } from '@/components/dashboard/Tour'
 import { UserMenu } from '@/components/dashboard/UserMenu'
 import { SidebarTooltip } from '@/components/dashboard/SidebarTooltip'
+import { useDashboardNotifications } from '@/components/dashboard/DashboardNotifications'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, tourId: 'nav-dashboard' },
@@ -30,6 +31,8 @@ const COLLAPSE_KEY = 'dashboard-sidebar-collapsed'
 export function DashboardSidebar({ academyName }: { academyName: string }) {
   const pathname = usePathname()
   const { startTour } = useTour()
+  const { academyChangeRequests } =
+    useDashboardNotifications()
   const [collapsed, setCollapsed] = useState(false)
   const [hydrated, setHydrated] = useState(false)
 
@@ -103,7 +106,7 @@ export function DashboardSidebar({ academyName }: { academyName: string }) {
                 href={href}
                 data-tour={tourId}
                 className={cn(
-                  'flex items-center gap-3 rounded-xl py-2.5 text-sm font-body font-semibold transition-colors',
+                  'relative flex items-center gap-3 rounded-xl py-2.5 text-sm font-body font-semibold transition-colors',
                   collapsed ? 'justify-center px-0' : 'px-3',
                   active
                     ? 'bg-sidebar-accent text-sidebar-primary'
@@ -111,7 +114,26 @@ export function DashboardSidebar({ academyName }: { academyName: string }) {
                 )}
               >
                 <Icon className="size-4 shrink-0" />
-                {!collapsed && label}
+                {!collapsed && <span className="flex-1">{label}</span>}
+
+                {href === '/dashboard' &&
+                  academyChangeRequests > 0 && (
+                    <span
+                      className={cn(
+                        'flex items-center justify-center rounded-full bg-puka-red text-white font-bold shadow-sm',
+                        collapsed
+                          ? 'absolute right-1 top-1 size-2 min-w-0 p-0'
+                          : 'min-w-5 h-5 px-1.5 text-[11px]'
+                      )}
+                      title={`${academyChangeRequests} pending academy-change requests`}
+                      aria-label={`${academyChangeRequests} pending academy-change requests`}
+                    >
+                      {!collapsed &&
+                        (academyChangeRequests > 99
+                          ? '99+'
+                          : academyChangeRequests)}
+                    </span>
+                  )}
               </Link>
             </SidebarTooltip>
           )
